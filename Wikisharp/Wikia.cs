@@ -2,7 +2,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Wikisharp
 {
-	public class Wikia
+	internal static class Wikia
 	{
 		internal static bool TryGetContinueToken(JObject obj, out JToken next,string s1, string s2)
 		{

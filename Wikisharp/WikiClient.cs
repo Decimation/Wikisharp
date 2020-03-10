@@ -27,25 +27,27 @@ namespace Wikisharp
 			}
 		}
 
+
 		public void Export(string dir)
 		{
 			var di = Directory.CreateDirectory(dir);
 
 			var listsResponse = GetLists();
-			var listsData = new List<ReadingList>();
-			var listSb = new StringBuilder();
-			
+			var listsData     = new List<ReadingList>();
+			var listSb        = new StringBuilder();
+
 			foreach (var response in listsResponse) {
 				var str = response.Content;
 				listSb.AppendLine(str);
 
-				var buf = JObject.Parse(str)["query"]["readinglists"].ToObject<List<ReadingList>>();
+				var buf = JObject.Parse(str)[Assets.QUERY][Assets.READINGLISTS].ToObject<List<ReadingList>>();
 				foreach (var list in buf) {
-					Console.WriteLine(">> {0}",list.Name);
+					Console.WriteLine(">> {0}", list.Name);
 				}
+
 				listsData.AddRange(buf);
 			}
-			
+
 			File.WriteAllText(Path.Combine(di.FullName, "lists.json"), listSb.ToString());
 
 			var lists = listsData;
@@ -60,25 +62,24 @@ namespace Wikisharp
 					var str  = response.Content;
 					var data = JObject.Parse(str);
 
-					entries.AddRange(data["query"]["readinglistentries"].ToObject<List<ReadingListEntry>>());
+					entries.AddRange(data[Assets.QUERY]["readinglistentries"].ToObject<List<ReadingListEntry>>());
 
 					sb.AppendLine(str);
 				}
 
 				Console.WriteLine("{0}: Entries: {1}", list.Name, entries.Count);
-				File.WriteAllText(Path.Combine(di.FullName, list.Name+".json"), sb.ToString());
+				File.WriteAllText(Path.Combine(di.FullName, list.Name + ".json"), sb.ToString());
 			}
 		}
 
 		public List<IRestResponse> GetList(int id)
 		{
-			var list = new List<IRestResponse>();
-
-			var listResponse = GetListSegment(id);
-
+			var list            = new List<IRestResponse>();
+			var listResponse    = GetListSegment(id);
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
-			if (!Wikia.TryGetContinueToken(listResponseObj, out var rleContinueTk, "continue","rlecontinue")) {
+			if (!Wikia.TryGetContinueToken(listResponseObj, out var rleContinueTk, Assets.CONTINUE,
+			                               Assets.RLECONTINUE)) {
 				list.Add(listResponse);
 				return list;
 			}
@@ -92,7 +93,8 @@ namespace Wikisharp
 				list.Add(listResponse);
 				listResponseObj = JObject.Parse(listResponse.Content);
 
-				if (!Wikia.TryGetContinueToken(listResponseObj, out rleContinueTk, "continue","rlecontinue")) {
+				if (!Wikia.TryGetContinueToken(listResponseObj, out rleContinueTk, Assets.CONTINUE,
+				                               Assets.RLECONTINUE)) {
 					break;
 				}
 
@@ -107,16 +109,16 @@ namespace Wikisharp
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&list=readinglistentries&rlelists=id
 
-			var req = Common.Create("query");
+			var req = Common.Create(Assets.QUERY);
 			req.AddQueryParameter("list", "readinglistentries");
 			req.AddQueryParameter("rlelists", id.ToString());
 
 			if (rleContinue != null) {
-				req.AddQueryParameter("rlecontinue", rleContinue);
+				req.AddQueryParameter(Assets.RLECONTINUE, rleContinue);
 			}
 
 			req.AddQueryParameter("format", "json");
-			//req.RootElement = "query";
+			//req.RootElement = WikiaAssets.QUERY;
 
 
 			var res = m_client.Execute(req, Method.GET);
@@ -126,12 +128,11 @@ namespace Wikisharp
 
 		public List<IRestResponse> GetLists()
 		{
-			var list = new List<IRestResponse>();
-			var listResponse = GetListsSegment();
+			var list            = new List<IRestResponse>();
+			var listResponse    = GetListsSegment();
 			var listResponseObj = JObject.Parse(listResponse.Content);
-			
-			
-			if (!Wikia.TryGetContinueToken(listResponseObj, out var rlContinueTk, "continue","rlcontinue")) {
+
+			if (!Wikia.TryGetContinueToken(listResponseObj, out var rlContinueTk, Assets.CONTINUE, "rlcontinue")) {
 				list.Add(listResponse);
 				return list;
 			}
@@ -143,21 +144,16 @@ namespace Wikisharp
 			while (rlContinue != null) {
 				listResponse = GetListsSegment(rlContinue);
 				list.Add(listResponse);
-				
 				listResponseObj = JObject.Parse(listResponse.Content);
 
-				
 
-				if (!Wikia.TryGetContinueToken(listResponseObj, out rlContinueTk, "continue","rlcontinue")) {
+				if (!Wikia.TryGetContinueToken(listResponseObj, out rlContinueTk, Assets.CONTINUE,
+				                               Assets.RLCONTINUE)) {
 					break;
 				}
 
 				rlContinue = rlContinueTk.ToString();
-
-
-				//Console.WriteLine("> rlecontinue: {0}", rleContinue);
 			}
-
 
 			return list;
 		}
@@ -166,15 +162,15 @@ namespace Wikisharp
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
 
-			var req = Common.Create("query");
-			req.AddQueryParameter("meta", "readinglists");
+			var req = Common.Create(Assets.QUERY);
+			req.AddQueryParameter("meta", Assets.READINGLISTS);
 
 			if (rlContinue != null) {
-				req.AddQueryParameter("rlcontinue", rlContinue);
+				req.AddQueryParameter(Assets.RLCONTINUE, rlContinue);
 			}
 
 			req.AddQueryParameter("format", "json");
-			req.RootElement = "query";
+			req.RootElement = Assets.QUERY;
 
 			var res = m_client.Execute(req, Method.GET);
 
