@@ -80,6 +80,14 @@ namespace Wikisharp.Utilities
 			Console.WriteLine(sb);
 		}
 
+		internal static void Assert(IRestResponse res)
+		{
+			if (!res.IsSuccessful || res.ResponseStatus == ResponseStatus.Error) {
+				Console.WriteLine("Request failed!");
+				Debug(res);
+			}
+		}
+		
 		public static IRestRequest Create(string action)
 		{
 			var req = new RestRequest();

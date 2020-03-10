@@ -57,6 +57,7 @@ namespace Wikisharp
 
 
 			var res  = m_client.Execute(req);
+			Common.Assert(res);
 			var data = Common.QueryParse<List<WikiUser>>(res.Content, Assets.USERS);
 
 			return data.FirstOrDefault();
@@ -172,6 +173,8 @@ namespace Wikisharp
 
 
 			var res = m_client.Execute(req, Method.GET);
+			
+			Common.Assert(res);
 
 			return res;
 		}
@@ -223,6 +226,7 @@ namespace Wikisharp
 			req.RootElement = Assets.QUERY;
 
 			var res = m_client.Execute(req, Method.GET);
+			Common.Assert(res);
 
 			return res;
 		}

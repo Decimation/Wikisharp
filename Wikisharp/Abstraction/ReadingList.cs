@@ -7,6 +7,8 @@ namespace Wikisharp.Abstraction
 	/// </summary>
 	public sealed class ReadingList
 	{
+		// https://www.mediawiki.org/wiki/Extension:ReadingLists#API
+		
 		public WikiReadingList List { get; }
 
 		public WikiReadingListEntry[] Entries { get; }

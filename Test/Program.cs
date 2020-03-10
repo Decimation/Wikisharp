@@ -17,10 +17,10 @@ namespace Test
 		
 		private static void Main(string[] args)
 		{
-			var ws = new WikiSession("001Decimation",
-			                         "cadd84b3ec598ae5b46c3be4e4a5aa03",
-			                         "a47da1c7a546ab335a656f9f4f2a231a",
-			                         "7eogj13jr0t54gbndkvfnlls3dbcp06o");
+			string caSession = "cadd84b3ec598ae5b46c3be4e4a5aa03";
+			string caToken = "a47da1c7a546ab335a656f9f4f2a231a";
+			
+			var ws = new WikiSession("001Decimation",caToken);
 
 			var wc = new WikiClient(ws);
 
@@ -32,6 +32,10 @@ namespace Test
 			CheckCount("Computer Science", 47);
 			CheckCount("Games", 2);
 			CheckCount("Language", 13);
+
+			foreach (var list in Lists) {
+				Console.WriteLine(list);
+			}
 		}
 
 		private static void CheckCount(string name, int cnt)

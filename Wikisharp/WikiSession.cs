@@ -7,28 +7,32 @@ using Wikisharp.WikiObjects;
 
 namespace Wikisharp
 {
+	/// <summary>
+	/// Contains cookies for Wikipedia API client (current temporary method of authorization)
+	/// </summary>
 	public sealed class WikiSession
 	{
 		private const string PATH = "/";
 
-		public WikiSession(string user, string caSession, string caToken, string mwSession)
+		// Cookies can be found by inspecting the cookies for the URL:
+		// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
+
+
+		public WikiSession(string user, string caToken)
 		{
-			var data = WikiClient.GetUserQuick(user);
-			int mwUserId = data.UserId;
-			
 			Cookies = new[]
 			{
-				CreateCentralAuthCookie("centralauth_Session", caSession),
+				// CreateCentralAuthCookie("centralauth_Session", caSession),
 				CreateCentralAuthCookie("centralauth_Token", caToken),
 				CreateCentralAuthCookie("centralauth_User", user),
 
-				CreateMediaWikiCookie("mediawikiwikiSession", mwSession),
-				CreateMediaWikiCookie("mediawikiwikiUserID", mwUserId.ToString()),
-				CreateMediaWikiCookie("mediawikiwikiUserName", user),
+				// CreateMediaWikiCookie("mediawikiwikiSession", mwSession),
+				// CreateMediaWikiCookie("mediawikiwikiUserID", mwUserId.ToString()),
+				// CreateMediaWikiCookie("mediawikiwikiUserName", user),
 			};
 		}
 
-		
+
 		public Cookie[] Cookies { get; }
 
 		private static Cookie CreateMediaWikiCookie(string name, string value)
