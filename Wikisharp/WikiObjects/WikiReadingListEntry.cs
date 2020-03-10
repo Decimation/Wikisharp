@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 namespace Wikisharp.WikiObjects
 {
 	[UsedImplicitly]
-	public sealed class ReadingListEntry
+	public sealed class WikiReadingListEntry
 	{
 		public int    Id      { get; set; }
 		public int    ListId  { get; set; }

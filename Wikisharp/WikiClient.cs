@@ -7,6 +7,8 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
+using Wikisharp.Abstraction;
+using Wikisharp.Utilities;
 using Wikisharp.WikiObjects;
 
 namespace Wikisharp
@@ -27,50 +29,57 @@ namespace Wikisharp
 			}
 		}
 
-		
+		public WikiUser GetUser(string name, string[] properties)
+		{
+			// https://www.mediawiki.org/w/api.php?action=query&list=users&ususers=Example&usprop=groups%7Ceditcount%7Cgender
 
-		public List<WikiaList> Export(string dir)
+			var req = Common.Create("query");
+			req.AddQueryParameter("list", "users");
+			req.AddQueryParameter("ususers", name);
+			req.AddQueryParameter("usprop", string.Join("|",properties));
+
+			var res = m_client.Execute(req);
+			var data = Common.QueryParse<List<WikiUser>>(res.Content, "users");
+
+			return data.FirstOrDefault();
+		}
+
+		public List<ReadingList> Export(string dir)
 		{
 			var di = Directory.CreateDirectory(dir);
 
 			var listsResponse = GetLists();
-			var listsData     = new List<ReadingList>();
-			var listSb        = new StringBuilder();
-			var wlist = new List<WikiaList>();
+			var lists         = new List<WikiReadingList>();
+			var listsJson     = new List<string>();
+			var wlist         = new List<ReadingList>();
 
-			foreach (var response in listsResponse) {
-				var str = response.Content;
-				listSb.AppendLine(str);
-
-				var buf = JObject.Parse(str)[Assets.QUERY][Assets.READINGLISTS].ToObject<List<ReadingList>>();
-				
-
-				listsData.AddRange(buf);
+			foreach (string str in listsResponse.Select(response => response.Content)) {
+				listsJson.Add(str);
+				lists.AddRange(Common.QueryParse<List<WikiReadingList>>(str, Assets.READINGLISTS));
 			}
 
-			File.WriteAllText(Path.Combine(di.FullName, "lists.json"), listSb.ToString());
-
-			var lists = listsData;
-
+			WriteJson("lists", listsJson);
+			
 			foreach (var list in lists) {
 				var listResponse = GetList(list.Id);
 
-				var sb      = new StringBuilder();
-				var entries = new List<ReadingListEntry>();
+				var entriesJson = new List<string>();
+				var entries     = new List<WikiReadingListEntry>();
 
-				foreach (var response in listResponse) {
-					var str  = response.Content;
-					var data = JObject.Parse(str);
-
-					entries.AddRange(data[Assets.QUERY][Assets.READINGLISTENTRIES].ToObject<List<ReadingListEntry>>());
-
-					sb.AppendLine(str);
+				foreach (string str in listResponse.Select(response => response.Content)) {
+					entries.AddRange(Common.QueryParse<List<WikiReadingListEntry>>(str, Assets.READINGLISTENTRIES));
+					entriesJson.Add(str);
 				}
 
-				
-				File.WriteAllText(Path.Combine(di.FullName, list.Name + ".json"), sb.ToString());
-				
-				wlist.Add(new WikiaList(list, entries.ToArray()));
+
+				WriteJson(list.Name, entriesJson);
+
+				wlist.Add(new ReadingList(list, entries.ToArray()));
+			}
+
+			void WriteJson(string fname, IEnumerable<string> js)
+			{
+				File.WriteAllLines(Path.Combine(di.FullName, fname + ".json"), js);
 			}
 
 			return wlist;
@@ -82,7 +91,7 @@ namespace Wikisharp
 			var listResponse    = GetListSegment(id);
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
-			if (!Wikia.TryGetContinueToken(listResponseObj, out var rleContinueTk, 
+			if (!Common.TryGetContinueToken(listResponseObj, out var rleContinueTk,
 			                               Assets.CONTINUE, Assets.RLECONTINUE)) {
 				list.Add(listResponse);
 				return list;
@@ -97,7 +106,7 @@ namespace Wikisharp
 				list.Add(listResponse);
 				listResponseObj = JObject.Parse(listResponse.Content);
 
-				if (!Wikia.TryGetContinueToken(listResponseObj, out rleContinueTk, 
+				if (!Common.TryGetContinueToken(listResponseObj, out rleContinueTk,
 				                               Assets.CONTINUE, Assets.RLECONTINUE)) {
 					break;
 				}
@@ -121,7 +130,7 @@ namespace Wikisharp
 				req.AddQueryParameter(Assets.RLECONTINUE, rleContinue);
 			}
 
-			
+
 			//req.RootElement = Assets.QUERY;
 
 
@@ -136,7 +145,8 @@ namespace Wikisharp
 			var listResponse    = GetListsSegment();
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
-			if (!Wikia.TryGetContinueToken(listResponseObj, out var rlContinueTk, Assets.CONTINUE, Assets.RLCONTINUE)) {
+			if (!Common.TryGetContinueToken(listResponseObj, out var rlContinueTk, 
+			                               Assets.CONTINUE, Assets.RLCONTINUE)) {
 				list.Add(listResponse);
 				return list;
 			}
@@ -151,7 +161,7 @@ namespace Wikisharp
 				listResponseObj = JObject.Parse(listResponse.Content);
 
 
-				if (!Wikia.TryGetContinueToken(listResponseObj, out rlContinueTk, 
+				if (!Common.TryGetContinueToken(listResponseObj, out rlContinueTk,
 				                               Assets.CONTINUE, Assets.RLCONTINUE)) {
 					break;
 				}

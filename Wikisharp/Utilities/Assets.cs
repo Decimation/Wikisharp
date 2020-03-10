@@ -1,4 +1,4 @@
-namespace Wikisharp
+namespace Wikisharp.Utilities
 {
 	internal static class Assets
 	{
