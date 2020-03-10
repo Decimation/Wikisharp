@@ -11,7 +11,7 @@ namespace Wikisharp
 	{
 		private const string PATH = "/";
 
-		public WikiSession(string caSession, string caToken, string user, string mwSession)
+		public WikiSession(string user, string caSession, string caToken, string mwSession)
 		{
 			var data = WikiClient.GetUserQuick(user);
 			int mwUserId = data.UserId;
