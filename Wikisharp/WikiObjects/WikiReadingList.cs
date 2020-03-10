@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace Wikisharp.WikiObjects
 {
-	[UsedImplicitly]
+	[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 	public sealed class WikiReadingList
 	{
 		public int    Id          { get; set; }

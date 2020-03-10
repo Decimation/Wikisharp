@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using JetBrains.Annotations;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -17,9 +19,11 @@ namespace Wikisharp
 	{
 		private readonly RestClient m_client;
 
+		private const string BASE_URL = "https://www.mediawiki.org/w/api.php";
+
 		public WikiClient(WikiSession ws)
 		{
-			m_client = new RestClient("https://www.mediawiki.org/w/api.php")
+			m_client = new RestClient(BASE_URL)
 			{
 				CookieContainer = new CookieContainer()
 			};
@@ -29,24 +33,51 @@ namespace Wikisharp
 			}
 		}
 
-		public WikiUser GetUser(string name, string[] properties)
+		public static WikiUser GetUserQuick(string name)
+		{
+			var req = string.Format("{0}?action=query&format=json&list=users&ususers={1}", BASE_URL, name);
+			var s   = Common.GetString(req);
+
+			var data = Common.QueryParse<List<WikiUser>>(s, Assets.USERS).FirstOrDefault();
+
+			return data;
+		}
+
+		public WikiUser GetUser(string name, [CanBeNull] string[] properties)
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&list=users&ususers=Example&usprop=groups%7Ceditcount%7Cgender
 
 			var req = Common.Create("query");
 			req.AddQueryParameter("list", "users");
 			req.AddQueryParameter("ususers", name);
-			req.AddQueryParameter("usprop", string.Join("|",properties));
 
-			var res = m_client.Execute(req);
-			var data = Common.QueryParse<List<WikiUser>>(res.Content, "users");
+			if (properties != null) {
+				req.AddQueryParameter("usprop", string.Join("|", properties));
+			}
+
+
+			var res  = m_client.Execute(req);
+			var data = Common.QueryParse<List<WikiUser>>(res.Content, Assets.USERS);
 
 			return data.FirstOrDefault();
 		}
 
-		public List<ReadingList> Export(string dir)
+		public ReadingList GetList(string name)
 		{
-			var di = Directory.CreateDirectory(dir);
+			var lists = GetAllLists();
+			return lists.FirstOrDefault(l => l.List.Name == name);
+		}
+
+		public List<ReadingList> GetAllLists([CanBeNull] string dir = null)
+		{
+			bool export = dir != null;
+
+			DirectoryInfo di = null;
+
+			if (export) {
+				di = Directory.CreateDirectory(dir);
+			}
+
 
 			var listsResponse = GetLists();
 			var lists         = new List<WikiReadingList>();
@@ -58,8 +89,11 @@ namespace Wikisharp
 				lists.AddRange(Common.QueryParse<List<WikiReadingList>>(str, Assets.READINGLISTS));
 			}
 
-			WriteJson("lists", listsJson);
-			
+			if (export) {
+				WriteJson("lists", listsJson);
+			}
+
+
 			foreach (var list in lists) {
 				var listResponse = GetList(list.Id);
 
@@ -72,13 +106,16 @@ namespace Wikisharp
 				}
 
 
-				WriteJson(list.Name, entriesJson);
+				if (export) {
+					WriteJson(list.Name, entriesJson);
+				}
 
 				wlist.Add(new ReadingList(list, entries.ToArray()));
 			}
 
 			void WriteJson(string fname, IEnumerable<string> js)
 			{
+				Debug.Assert(di != null);
 				File.WriteAllLines(Path.Combine(di.FullName, fname + ".json"), js);
 			}
 
@@ -92,7 +129,7 @@ namespace Wikisharp
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
 			if (!Common.TryGetContinueToken(listResponseObj, out var rleContinueTk,
-			                               Assets.CONTINUE, Assets.RLECONTINUE)) {
+			                                Assets.CONTINUE, Assets.RLECONTINUE)) {
 				list.Add(listResponse);
 				return list;
 			}
@@ -107,7 +144,7 @@ namespace Wikisharp
 				listResponseObj = JObject.Parse(listResponse.Content);
 
 				if (!Common.TryGetContinueToken(listResponseObj, out rleContinueTk,
-				                               Assets.CONTINUE, Assets.RLECONTINUE)) {
+				                                Assets.CONTINUE, Assets.RLECONTINUE)) {
 					break;
 				}
 
@@ -145,8 +182,8 @@ namespace Wikisharp
 			var listResponse    = GetListsSegment();
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
-			if (!Common.TryGetContinueToken(listResponseObj, out var rlContinueTk, 
-			                               Assets.CONTINUE, Assets.RLCONTINUE)) {
+			if (!Common.TryGetContinueToken(listResponseObj, out var rlContinueTk,
+			                                Assets.CONTINUE, Assets.RLCONTINUE)) {
 				list.Add(listResponse);
 				return list;
 			}
@@ -162,7 +199,7 @@ namespace Wikisharp
 
 
 				if (!Common.TryGetContinueToken(listResponseObj, out rlContinueTk,
-				                               Assets.CONTINUE, Assets.RLCONTINUE)) {
+				                                Assets.CONTINUE, Assets.RLCONTINUE)) {
 					break;
 				}
 

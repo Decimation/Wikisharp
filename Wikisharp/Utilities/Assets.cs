@@ -13,5 +13,7 @@ namespace Wikisharp.Utilities
 		internal const string RLCONTINUE = "rlcontinue";
 
 		internal const string RLECONTINUE = "rlecontinue";
+
+		internal const string USERS = "users";
 	}
 }

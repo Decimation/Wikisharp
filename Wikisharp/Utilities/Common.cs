@@ -12,14 +12,16 @@ namespace Wikisharp.Utilities
 {
 	internal static class Common
 	{
-		static Common()
+		
+
+
+		public static string GetString(string url)
 		{
-			var settings = new JsonSerializerSettings() {ContractResolver = new InternalResolver()};
-			Serializer = JsonSerializer.CreateDefault(settings);
+			using var wc       = new System.Net.WebClient();
+			string    contents = wc.DownloadString(url);
+
+			return contents;
 		}
-
-		private static JsonSerializer Serializer { get; }
-
 
 		public static T QueryParse<T>(string str, string key1)
 		{
