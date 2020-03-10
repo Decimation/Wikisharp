@@ -14,10 +14,7 @@ namespace Wikisharp.WikiObjects
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder();
-			sb.AppendFormat("Id: {0}\n", Id);
-			sb.AppendFormat("Name: {0}\n", Name);
-			return sb.ToString();
+			return string.Format("{0} ({1})", Name, Id);
 		}
 	}
 }

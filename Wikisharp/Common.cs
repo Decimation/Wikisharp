@@ -61,6 +61,7 @@ namespace Wikisharp
 		{
 			var req = new RestRequest();
 			req.AddQueryParameter("action", action);
+			req.AddQueryParameter("format", "json");
 			return req;
 		}
 	}
