@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using Wikisharp;
 
 namespace Test
@@ -11,9 +13,14 @@ namespace Test
 			                         "001Decimation", "7eogj13jr0t54gbndkvfnlls3dbcp06o", "4511278");
 			
 			var wc  = new WikiClient(ws);
-			var lists = wc.GetLists().Data.ReadingLists;
+			var lists = wc.GetListsAggregate();
+			
 			foreach (var list in lists) {
-				Console.WriteLine(list);
+				var listObj = JObject.Parse(list.Content)["query"]["readinglists"].ToObject<List<ReadingList>>();
+
+				foreach (var readingList in listObj) {
+					Console.WriteLine(readingList.Name);
+				}
 
 				//var entries = wc.GetList(list.Id).Data.ReadingListEntries;
 

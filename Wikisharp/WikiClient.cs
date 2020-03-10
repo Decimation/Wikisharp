@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -29,62 +30,61 @@ namespace Wikisharp
 		{
 			var di = Directory.CreateDirectory(dir);
 
-			var listsResponse = GetLists();
-			File.WriteAllText(Path.Combine(di.FullName, "lists.json"), listsResponse.Content);
+			var listsResponse = GetListsAggregate();
+			var listsData = new List<ReadingList>();
+			var listSb = new StringBuilder();
+			
+			foreach (var response in listsResponse) {
+				var str = response.Content;
+				listSb.AppendLine(str);
 
-			var lists = listsResponse.Data.ReadingLists;
+				var buf = JObject.Parse(str)["query"]["readinglists"].ToObject<List<ReadingList>>();
+				foreach (var list in buf) {
+					Console.WriteLine(">> {0}",list.Name);
+				}
+				listsData.AddRange(buf);
+			}
+			
+			File.WriteAllText(Path.Combine(di.FullName, "lists.json"), listSb.ToString());
+
+			var lists = listsData;
 
 			foreach (var list in lists) {
-				var listResponse         = AggregateGetList(list.Id);
-				var listContentAggregate = listResponse.Select(l => JObject.Parse(l.Content)).ToArray();
-				var listEntries = listContentAggregate.Select(s => s["query"]["readinglistentries"].ToObject<List<ReadingListEntry>>()).ToArray();
-				var listAggregate = new List<ReadingListEntry>();
-				foreach (List<ReadingListEntry> listEntry in listEntries) {
-					listAggregate.AddRange(listEntry);
+				var listResponse = AggregateGetList(list.Id);
+
+				var sb      = new StringBuilder();
+				var entries = new List<ReadingListEntry>();
+
+				foreach (var response in listResponse) {
+					var str  = response.Content;
+					var data = JObject.Parse(str);
+
+					entries.AddRange(data["query"]["readinglistentries"].ToObject<List<ReadingListEntry>>());
+
+					sb.AppendLine(str);
 				}
-				
 
-				Console.WriteLine("> {0}", list.Name);
-
-				File.WriteAllLines(Path.Combine(di.FullName, list.Name + ".json"), listContentAggregate.tos);
+				Console.WriteLine("{0}: Entries: {1}", list.Name, entries.Count);
+				File.WriteAllText(Path.Combine(di.FullName, list.Name+".json"), sb.ToString());
 			}
 		}
 
-
-		public List<IRestResponse<ReadingListEntriesQuery>> AggregateGetListOld(int id)
-		{
-			var list = new List<IRestResponse<ReadingListEntriesQuery>>();
-
-			var    listResponse = GetListOld(id);
-			string rleContinue  = listResponse.Data.Continue.RleContinue;
-
-			list.Add(listResponse);
-
-			while (rleContinue != null) {
-				listResponse = GetListOld(id, rleContinue);
-				var data = listResponse.Data;
-
-				rleContinue = data.Continue.RleContinue;
-				list.Add(listResponse);
-			}
-
-			return list;
-		}
 
 		public List<IRestResponse> AggregateGetList(int id)
 		{
 			var list = new List<IRestResponse>();
 
-			var    listResponse = GetList(id);
+			var listResponse = GetList(id);
 
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
 			if (!listResponseObj.ContainsKey("continue")) {
+				list.Add(listResponse);
 				return list;
 			}
-			
+
 			string rleContinue = listResponseObj["continue"]["rlecontinue"].ToString();
-			Console.WriteLine("rlecontinue: {0}", rleContinue);
+			//Console.WriteLine("rlecontinue: {0}", rleContinue);
 
 			list.Add(listResponse);
 
@@ -96,13 +96,12 @@ namespace Wikisharp
 				if (!listResponseObj.ContainsKey("continue")) {
 					break;
 				}
+
 				rleContinue = listResponseObj["continue"]["rlecontinue"].ToString();
-				
-				Console.WriteLine("> rlecontinue: {0}", rleContinue);
-				
+
+				//Console.WriteLine("> rlecontinue: {0}", rleContinue);
 			}
-			
-			
+
 
 			return list;
 		}
@@ -128,33 +127,62 @@ namespace Wikisharp
 			return res;
 		}
 
-		public IRestResponse<ReadingListEntriesQuery> GetListOld(int id, string rleContinue = null)
+		public List<IRestResponse> GetListsAggregate()
 		{
-			// https://www.mediawiki.org/w/api.php?action=query&list=readinglistentries&rlelists=id
+			var list = new List<IRestResponse>();
+
+			var listResponse = GetLists();
+
+			var listResponseObj = JObject.Parse(listResponse.Content);
+
+			if (!listResponseObj.ContainsKey("continue")) {
+				list.Add(listResponse);
+				return list;
+			}
+
+			string rlContinue = listResponseObj["continue"]["rlcontinue"].ToString();
+			//Console.WriteLine("rlecontinue: {0}", rleContinue);
+
+			list.Add(listResponse);
+
+			while (rlContinue != null) {
+				listResponse = GetLists(rlContinue);
+				list.Add(listResponse);
+				listResponseObj = JObject.Parse(listResponse.Content);
+
+				if (!listResponseObj.ContainsKey("continue")) {
+					break;
+				}
+
+				rlContinue = listResponseObj["continue"]["rlcontinue"].ToString();
+
+				//Console.WriteLine("> rlecontinue: {0}", rleContinue);
+			}
+
+
+			return list;
+		}
+
+		public IRestResponse GetLists(string rlContinue = null)
+		{
+			// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
 
 			var req = Common.Create("query");
-			req.AddQueryParameter("list", "readinglistentries");
-			req.AddQueryParameter("rlelists", id.ToString());
+			req.AddQueryParameter("meta", "readinglists");
 
-			if (rleContinue != null) {
-				req.AddQueryParameter("rlecontinue", rleContinue);
+			if (rlContinue != null) {
+				req.AddQueryParameter("rlcontinue", rlContinue);
 			}
 
 			req.AddQueryParameter("format", "json");
-			//req.RootElement = "query";
+			req.RootElement = "query";
 
+			var res = m_client.Execute(req, Method.GET);
 
-			var res = m_client.Execute<dynamic>(req, Method.GET);
-
-			var rleq = new ReadingListEntriesQuery();
-			rleq.Continue           = (ListContinue) res.Data.Continue;
-			rleq.ReadingListEntries = (List<ReadingListEntry>) res.Data.ReadingListEntries;
-
-			return null;
+			return res;
 		}
 
-
-		public IRestResponse<ReadingListsQuery> GetLists()
+		public IRestResponse<ReadingListsQuery> GetListsOld()
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
 
