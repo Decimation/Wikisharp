@@ -1,8 +1,10 @@
 using System.Text;
+using JetBrains.Annotations;
 
-namespace Wikisharp
+namespace Wikisharp.WikiObjects
 {
-	public class ReadingListEntry
+	[UsedImplicitly]
+	public sealed class ReadingListEntry
 	{
 		public int Id { get; set;}
 		public int ListId { get; set;}

@@ -7,6 +7,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 using RestSharp.Authenticators;
+using Wikisharp.WikiObjects;
 
 namespace Wikisharp
 {
@@ -30,7 +31,7 @@ namespace Wikisharp
 		{
 			var di = Directory.CreateDirectory(dir);
 
-			var listsResponse = GetListsAggregate();
+			var listsResponse = GetLists();
 			var listsData = new List<ReadingList>();
 			var listSb = new StringBuilder();
 			
@@ -50,7 +51,7 @@ namespace Wikisharp
 			var lists = listsData;
 
 			foreach (var list in lists) {
-				var listResponse = AggregateGetList(list.Id);
+				var listResponse = GetList(list.Id);
 
 				var sb      = new StringBuilder();
 				var entries = new List<ReadingListEntry>();
@@ -69,12 +70,11 @@ namespace Wikisharp
 			}
 		}
 
-
-		public List<IRestResponse> AggregateGetList(int id)
+		public List<IRestResponse> GetList(int id)
 		{
 			var list = new List<IRestResponse>();
 
-			var listResponse = GetList(id);
+			var listResponse = GetListSegment(id);
 
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
@@ -89,7 +89,7 @@ namespace Wikisharp
 			list.Add(listResponse);
 
 			while (rleContinue != null) {
-				listResponse = GetList(id, rleContinue);
+				listResponse = GetListSegment(id, rleContinue);
 				list.Add(listResponse);
 				listResponseObj = JObject.Parse(listResponse.Content);
 
@@ -106,7 +106,7 @@ namespace Wikisharp
 			return list;
 		}
 
-		public IRestResponse GetList(int id, string rleContinue = null)
+		private IRestResponse GetListSegment(int id, string rleContinue = null)
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&list=readinglistentries&rlelists=id
 
@@ -127,12 +127,10 @@ namespace Wikisharp
 			return res;
 		}
 
-		public List<IRestResponse> GetListsAggregate()
+		public List<IRestResponse> GetLists()
 		{
 			var list = new List<IRestResponse>();
-
-			var listResponse = GetLists();
-
+			var listResponse = GetListsSegment();
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
 			if (!listResponseObj.ContainsKey("continue")) {
@@ -146,8 +144,9 @@ namespace Wikisharp
 			list.Add(listResponse);
 
 			while (rlContinue != null) {
-				listResponse = GetLists(rlContinue);
+				listResponse = GetListsSegment(rlContinue);
 				list.Add(listResponse);
+				
 				listResponseObj = JObject.Parse(listResponse.Content);
 
 				if (!listResponseObj.ContainsKey("continue")) {
@@ -163,7 +162,7 @@ namespace Wikisharp
 			return list;
 		}
 
-		public IRestResponse GetLists(string rlContinue = null)
+		private IRestResponse GetListsSegment(string rlContinue = null)
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
 
@@ -178,20 +177,6 @@ namespace Wikisharp
 			req.RootElement = "query";
 
 			var res = m_client.Execute(req, Method.GET);
-
-			return res;
-		}
-
-		public IRestResponse<ReadingListsQuery> GetListsOld()
-		{
-			// https://www.mediawiki.org/w/api.php?action=query&meta=readinglists
-
-			var req = Common.Create("query");
-			req.AddQueryParameter("meta", "readinglists");
-			req.AddQueryParameter("format", "json");
-			req.RootElement = "query";
-
-			var res = m_client.Execute<ReadingListsQuery>(req, Method.GET);
 
 			return res;
 		}

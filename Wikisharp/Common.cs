@@ -2,7 +2,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 using RestSharp;
-[assembly:InternalsVisibleTo("Test")]
+
+[assembly: InternalsVisibleTo("Test")]
+
 namespace Wikisharp
 {
 	internal static class Common
@@ -16,7 +18,7 @@ namespace Wikisharp
 			sb.AppendFormat("URI: {0}\n", res.ResponseUri);
 
 			var cookies = res.Cookies;
-			if (cookies!=null) {
+			if (cookies != null) {
 				sb.AppendFormat("N cookies returned: {0}\n", cookies.Count);
 
 				if (includeCookies) {
@@ -25,7 +27,7 @@ namespace Wikisharp
 					}
 				}
 			}
-			
+
 
 			var errmsg = res.ErrorMessage;
 			if (errmsg != null) {
