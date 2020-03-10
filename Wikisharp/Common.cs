@@ -40,5 +40,12 @@ namespace Wikisharp
 
 			Console.WriteLine(sb);
 		}
+
+		public static IRestRequest Create(string action)
+		{
+			var req = new RestRequest();
+			req.AddQueryParameter("action", action);
+			return req;
+		}
 	}
 }
