@@ -78,13 +78,12 @@ namespace Wikisharp
 
 			var listResponseObj = JObject.Parse(listResponse.Content);
 
-			if (!listResponseObj.ContainsKey("continue")) {
+			if (!Wikia.TryGetContinueToken(listResponseObj, out var rleContinueTk, "continue","rlecontinue")) {
 				list.Add(listResponse);
 				return list;
 			}
 
-			string rleContinue = listResponseObj["continue"]["rlecontinue"].ToString();
-			//Console.WriteLine("rlecontinue: {0}", rleContinue);
+			string rleContinue = rleContinueTk.ToString();
 
 			list.Add(listResponse);
 
@@ -93,13 +92,11 @@ namespace Wikisharp
 				list.Add(listResponse);
 				listResponseObj = JObject.Parse(listResponse.Content);
 
-				if (!listResponseObj.ContainsKey("continue")) {
+				if (!Wikia.TryGetContinueToken(listResponseObj, out rleContinueTk, "continue","rlecontinue")) {
 					break;
 				}
 
-				rleContinue = listResponseObj["continue"]["rlecontinue"].ToString();
-
-				//Console.WriteLine("> rlecontinue: {0}", rleContinue);
+				rleContinue = rleContinueTk.ToString();
 			}
 
 
@@ -132,14 +129,14 @@ namespace Wikisharp
 			var list = new List<IRestResponse>();
 			var listResponse = GetListsSegment();
 			var listResponseObj = JObject.Parse(listResponse.Content);
-
-			if (!listResponseObj.ContainsKey("continue")) {
+			
+			
+			if (!Wikia.TryGetContinueToken(listResponseObj, out var rlContinueTk, "continue","rlcontinue")) {
 				list.Add(listResponse);
 				return list;
 			}
 
-			string rlContinue = listResponseObj["continue"]["rlcontinue"].ToString();
-			//Console.WriteLine("rlecontinue: {0}", rleContinue);
+			string rlContinue = rlContinueTk.ToString();
 
 			list.Add(listResponse);
 
@@ -149,11 +146,14 @@ namespace Wikisharp
 				
 				listResponseObj = JObject.Parse(listResponse.Content);
 
-				if (!listResponseObj.ContainsKey("continue")) {
+				
+
+				if (!Wikia.TryGetContinueToken(listResponseObj, out rlContinueTk, "continue","rlcontinue")) {
 					break;
 				}
 
-				rlContinue = listResponseObj["continue"]["rlcontinue"].ToString();
+				rlContinue = rlContinueTk.ToString();
+
 
 				//Console.WriteLine("> rlecontinue: {0}", rleContinue);
 			}
