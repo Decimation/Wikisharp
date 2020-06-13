@@ -2,6 +2,19 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.0</TargetFramework>
+
+        <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+
+        <PublishSingleFile>true</PublishSingleFile>
+
+        <PublishTrimmed>true</PublishTrimmed>
+
+        
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+        <!--<Nullable>enable</Nullable>-->
+        <DefineConstants>JETBRAINS_ANNOTATIONS;TRACE</DefineConstants>
+        <OutputType>Exe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>

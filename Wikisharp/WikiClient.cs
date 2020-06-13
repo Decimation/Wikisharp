@@ -13,6 +13,7 @@ using RestSharp.Authenticators;
 using Wikisharp.Abstraction;
 using Wikisharp.Utilities;
 using Wikisharp.WikiObjects;
+// ReSharper disable ReturnTypeCanBeEnumerable.Global
 
 namespace Wikisharp
 {
@@ -25,11 +26,11 @@ namespace Wikisharp
 
 		private readonly RestClient m_wikiClient;
 
-		private readonly RestClient m_wikiClient2;
-
-		private const string BASE_URL = "https://www.mediawiki.org/w/api.php";
-		private const string BASE2_URL = "https://en.wikipedia.org/w/rest.php/v1/";
-		private const string BASE3_URL = "https://en.wikipedia.org/api/rest_v1/";
+		private const string ENDPOINT_1 = "https://www.mediawiki.org/w/api.php";
+		
+		private const string ENDPOINT_2 = "https://en.wikipedia.org/w/rest.php/v1/";
+		
+		private const string ENDPOINT_3 = "https://en.wikipedia.org/api/rest_v1/";
 		
 		// https://github.com/dqisme/wikipedia-reading-lists-chrome-extension/blob/master/src/hooks/useEntries.tsx
 		// https://en.wikipedia.org/api/rest_v1/data/lists/
@@ -37,7 +38,7 @@ namespace Wikisharp
 		
 		public WikiClient(WikiSession ws)
 		{
-			m_client = new RestClient(BASE_URL)
+			m_client = new RestClient(ENDPOINT_1)
 			{
 				CookieContainer = new CookieContainer()
 			};
@@ -46,21 +47,12 @@ namespace Wikisharp
 				m_client.CookieContainer.Add(cookie);
 			}
 			
-			m_wikiClient = new RestClient(BASE2_URL);
-			
-			m_wikiClient2 = new RestClient(BASE3_URL)
-			{
-				CookieContainer = new CookieContainer()
-			};
-			
-			foreach (var cookie in ws.Cookies) {
-				m_wikiClient2.CookieContainer.Add(cookie);
-			}
+			m_wikiClient = new RestClient(ENDPOINT_2);
 		}
 
 		public static WikiUser GetUserQuick(string name)
 		{
-			var req = String.Format("{0}?action=query&format=json&list=users&ususers={1}", BASE_URL, name);
+			var req = String.Format("{0}?action=query&format=json&list=users&ususers={1}", ENDPOINT_1, name);
 			var s   = Common.GetString(req);
 
 			var data = Common.QueryParse<List<WikiUser>>(s, Assets.USERS).FirstOrDefault();
@@ -94,7 +86,7 @@ namespace Wikisharp
 			return lists.FirstOrDefault(l => l.List.Name == name);
 		}
 
-		public List<WikiReadingListEntry> fromjson(string str)
+		public static List<WikiReadingListEntry> FromJson(string str)
 		{
 			return Common.QueryParse<List<WikiReadingListEntry>>(str, Assets.READINGLISTENTRIES);
 		}
@@ -121,7 +113,7 @@ namespace Wikisharp
 			}
 
 			if (export) {
-				WriteJson("lists", listsJson);
+				WriteJson("lists", listsJson, di);
 			}
 
 
@@ -139,24 +131,29 @@ namespace Wikisharp
 				
 
 				if (export) {
-					WriteJson(list.Name, entriesJson);
+					WriteJson(list.Name, entriesJson,di);
 				}
 
 				wlist.Add(new ReadingList(list, entries.ToArray()));
 			}
 
-			void WriteJson(string fname, IEnumerable<string> js)
-			{
-				
-				Debug.Assert(di != null);
-				File.WriteAllLines(Path.Combine(di.FullName, fname + ".json"), js);
-			}
+			
 
 			return wlist;
 		}
-
+		
+		
+		
+		
+		static void WriteJson(string fname, IEnumerable<string> js, DirectoryInfo di)
+		{
+				
+			Debug.Assert(di != null);
+			File.WriteAllLines(Path.Combine(di.FullName, fname + ".json"), js);
+		}
 		public WikiPage GetPage(string q)
 		{
+			// todo
 			// https://en.wikipedia.org/w/rest.php/v1/search/page?q=jupiter&limit=1
 
 			const int lim = 1;
@@ -328,7 +325,7 @@ namespace Wikisharp
 					i++;
 				}
 				else {
-					Console.WriteLine("0 results for {0}", entry.Title);
+					Console.WriteLine("No result for {0}", entry.Title);
 				}
 				
 			}
@@ -343,41 +340,7 @@ namespace Wikisharp
 		
 		public static void WriteHtmlList(ReadingList list, WikiClient wc, string d)
 		{
-			var sb = new List<string>
-			{
-				list.List.Name, 
-				"<ul>"
-			};
-			
-			//sb.Add(Environment.NewLine);
-
-			int i = 0;
-			foreach (var entry in list.Entries) {
-				const string s = "https://en.wikipedia.org/wiki/";
-
-
-				var page = wc.GetPage(entry.Title);
-				if (page != null) {
-					var nt   = String.Format("{0} - Wikipedia", page.Title);
-					var key = HttpUtility.UrlEncode(page.Key);
-					var link = s + key;
-					var sz   = String.Format("<li> <a href=\"{0}\">{1}</a> </li>", link, nt);
-					sb.Add(sz);
-					//sb.Add(Environment.NewLine);
-
-					i++;
-				}
-				else {
-					Console.WriteLine("0 results for {0}", entry.Title);
-				}
-				
-			}
-
-			sb.Add("</ul>");
-
-			File.WriteAllLines(d, sb);
-
-			Console.WriteLine("Wrote {0}/{1} to {2}",i,list.Entries.Length,d);
+			WriteHtmlList(new List<WikiReadingListEntry>(list.Entries), wc, d, list.List.Name);
 		}
 	}
 }
