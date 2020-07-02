@@ -7,4 +7,5 @@ Currently its main use is exporting reading lists.
 
 `wikisharp <token> <username>`
 
-Exports reading lists to the current directory.
+Exports reading lists to the current directory. You can view your token from the 
+dev tools menu (Ctrl+Shift+I) > Application > Cookies (`centralauth_Token`).
