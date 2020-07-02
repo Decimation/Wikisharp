@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -79,7 +80,15 @@ namespace Wikisharp.Utilities
 
 			Console.WriteLine(sb);
 		}
-
+		
+		public static IEnumerable<List<T>> SplitList<T>(List<T> locations, int nSize =30)  
+		{        
+			for (int i = 0; i < locations.Count; i += nSize) 
+			{ 
+				yield return locations.GetRange(i, Math.Min(nSize, locations.Count - i)); 
+			}  
+		} 
+		
 		internal static void Assert(IRestResponse res)
 		{
 			if (!res.IsSuccessful || res.ResponseStatus == ResponseStatus.Error) {
@@ -94,6 +103,28 @@ namespace Wikisharp.Utilities
 			req.AddQueryParameter("action", action);
 			req.AddQueryParameter("format", "json");
 			return req;
+		}
+
+		public static bool get<T>(T[] rg, int i, out T t)
+		{
+			if (i < rg.Length) {
+				t = rg[i];
+				return true;
+			}
+
+			t = default;
+			return false;
+		}
+		public static void InitArrayUsing<T>(T[] rg, T t = default)
+		{
+			for (int i = 0; i < rg.Length; i++) {
+				rg[i] = t;
+			}
+		}
+
+		public static void InitArray<T>(T[] rg) where T : new()
+		{
+			InitArrayUsing(rg, new T());
 		}
 
 		internal static bool TryGetContinueToken(JObject obj, out JToken next, string key1, string key2)

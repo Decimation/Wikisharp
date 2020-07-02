@@ -13,29 +13,35 @@ using RestSharp.Authenticators;
 using Wikisharp.Abstraction;
 using Wikisharp.Utilities;
 using Wikisharp.WikiObjects;
-// ReSharper disable ReturnTypeCanBeEnumerable.Global
 
+// ReSharper disable ReturnTypeCanBeEnumerable.Global
+#nullable enable
 namespace Wikisharp
 {
 	public class WikiClient
 	{
+		private const string ENDPOINT_1 = "https://www.mediawiki.org/w/api.php";
+
+		private const string ENDPOINT_2 = "https://en.wikipedia.org/w/rest.php/v1/";
+
+		private const string ENDPOINT_3 = "https://en.wikipedia.org/api/rest_v1/";
+
+		private const int RLELIMIT = 100;
+
+		private const string WIKI_URL = "https://en.wikipedia.org/wiki/";
+		
+		
 		// https://www.mediawiki.org/wiki/Extension:ReadingLists
-		
-		
+
+
 		private readonly RestClient m_client;
 
 		private readonly RestClient m_wikiClient;
 
-		private const string ENDPOINT_1 = "https://www.mediawiki.org/w/api.php";
-		
-		private const string ENDPOINT_2 = "https://en.wikipedia.org/w/rest.php/v1/";
-		
-		private const string ENDPOINT_3 = "https://en.wikipedia.org/api/rest_v1/";
-		
 		// https://github.com/dqisme/wikipedia-reading-lists-chrome-extension/blob/master/src/hooks/useEntries.tsx
 		// https://en.wikipedia.org/api/rest_v1/data/lists/
 		// https://en.wikipedia.org/api/rest_v1/data/lists/{list id}/entries/
-		
+
 		public WikiClient(WikiSession ws)
 		{
 			m_client = new RestClient(ENDPOINT_1)
@@ -46,7 +52,7 @@ namespace Wikisharp
 			foreach (var cookie in ws.Cookies) {
 				m_client.CookieContainer.Add(cookie);
 			}
-			
+
 			m_wikiClient = new RestClient(ENDPOINT_2);
 		}
 
@@ -60,7 +66,7 @@ namespace Wikisharp
 			return data;
 		}
 
-		public WikiUser GetUser(string name, [CanBeNull] string[] properties)
+		public WikiUser GetUser(string name, string[]? properties)
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&list=users&ususers=Example&usprop=groups%7Ceditcount%7Cgender
 
@@ -73,7 +79,7 @@ namespace Wikisharp
 			}
 
 
-			var res  = m_client.Execute(req);
+			var res = m_client.Execute(req);
 			Common.Assert(res);
 			var data = Common.QueryParse<List<WikiUser>>(res.Content, Assets.USERS);
 
@@ -90,8 +96,8 @@ namespace Wikisharp
 		{
 			return Common.QueryParse<List<WikiReadingListEntry>>(str, Assets.READINGLISTENTRIES);
 		}
-		
-		public List<ReadingList> GetAllLists([CanBeNull] string dir = null)
+
+		public List<ReadingList> GetAllLists(string? dir = null)
 		{
 			bool export = dir != null;
 
@@ -128,29 +134,25 @@ namespace Wikisharp
 					entriesJson.Add(str);
 				}
 
-				
 
 				if (export) {
-					WriteJson(list.Name, entriesJson,di);
+					WriteJson(list.Name, entriesJson, di);
 				}
 
 				wlist.Add(new ReadingList(list, entries.ToArray()));
 			}
 
-			
 
 			return wlist;
 		}
-		
-		
-		
-		
-		static void WriteJson(string fname, IEnumerable<string> js, DirectoryInfo di)
+
+
+		private static void WriteJson(string fname, IEnumerable<string> js, DirectoryInfo di)
 		{
-				
 			Debug.Assert(di != null);
 			File.WriteAllLines(Path.Combine(di.FullName, fname + ".json"), js);
 		}
+
 		public WikiPage GetPage(string q)
 		{
 			// todo
@@ -158,9 +160,9 @@ namespace Wikisharp
 
 			const int lim = 1;
 			//var qencode = Uri.EscapeDataString(q);
-			var qencode=HttpUtility.UrlEncode(q);
-			
-			var r  = new RestRequest("search/page");
+			var qencode = HttpUtility.UrlEncode(q);
+
+			var r = new RestRequest("search/page");
 			r.AddQueryParameter("q", qencode);
 			r.AddQueryParameter("limit", lim.ToString());
 
@@ -174,12 +176,12 @@ namespace Wikisharp
 
 			object? val = null;
 
-			if (js.Length>0) {
+			if (js.Length > 0) {
 				val = js[0];
 			}
-			
 
-			if (val!=null) {
+
+			if (val != null) {
 				return (WikiPage) val;
 			}
 
@@ -219,8 +221,6 @@ namespace Wikisharp
 			return list;
 		}
 
-		private const int RLELIMIT = 100;
-		
 		private IRestResponse GetListSegment(int id, string rleContinue = null)
 		{
 			// https://www.mediawiki.org/w/api.php?action=query&list=readinglistentries&rlelists=id&rlelimit=int
@@ -229,9 +229,8 @@ namespace Wikisharp
 			req.AddQueryParameter("list", Assets.READINGLISTENTRIES);
 			req.AddQueryParameter("rlelists", id.ToString());
 			req.AddQueryParameter("rlelimit", RLELIMIT.ToString());
-			
-			
-			
+
+
 			if (rleContinue != null) {
 				req.AddQueryParameter(Assets.RLECONTINUE, rleContinue);
 			}
@@ -241,7 +240,7 @@ namespace Wikisharp
 
 
 			var res = m_client.Execute(req, Method.GET);
-			
+
 			Common.Assert(res);
 
 			return res;
@@ -298,27 +297,39 @@ namespace Wikisharp
 
 			return res;
 		}
+
+		public string? GetPageLink(string title, out WikiPage page)
+		{
+			page = GetPage(title);
+
+			if (page == null) {
+				return null;
+			}
+
+			var key  = HttpUtility.UrlEncode(page.Key, Encoding.Default);
+			var link = WIKI_URL + key;
+
+
+			return link;
+		}
+
 		public static void WriteHtmlList(List<WikiReadingListEntry> list, WikiClient wc, string d, string n)
 		{
 			var sb = new List<string>
 			{
-				n, 
+				n,
 				"<ul>"
 			};
-			
+
 			//sb.Add(Environment.NewLine);
 
 			int i = 0;
 			foreach (var entry in list) {
-				const string s = "https://en.wikipedia.org/wiki/";
+				var link = wc.GetPageLink(entry.Title, out var page);
 
-
-				var page = wc.GetPage(entry.Title);
-				if (page != null) {
-					var nt   = String.Format("{0} - Wikipedia", page.Title);
-					var key  = HttpUtility.UrlEncode(page.Key);
-					var link = s + key;
-					var sz   = String.Format("<li> <a href=\"{0}\">{1}</a> </li>", link, nt);
+				if (link != null) {
+					var nt = String.Format("{0} - Wikipedia", page.Title);
+					var sz = String.Format("<li> <a href=\"{0}\">{1}</a> </li>", link, nt);
 					sb.Add(sz);
 					//sb.Add(Environment.NewLine);
 
@@ -327,17 +338,16 @@ namespace Wikisharp
 				else {
 					Console.WriteLine("No result for {0}", entry.Title);
 				}
-				
 			}
 
 			sb.Add("</ul>");
 
 			File.WriteAllLines(d, sb);
 
-			Console.WriteLine("Wrote {0}/{1} to {2}",i,list.Count,d);
+			Console.WriteLine("Wrote {0}/{1} to {2}", i, list.Count, d);
 		}
-		
-		
+
+
 		public static void WriteHtmlList(ReadingList list, WikiClient wc, string d)
 		{
 			WriteHtmlList(new List<WikiReadingListEntry>(list.Entries), wc, d, list.List.Name);
