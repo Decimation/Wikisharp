@@ -36,15 +36,25 @@ namespace Wikisharp
 			var token = args[0];
 			var user  = args[1];
 
+			Console.WriteLine("User: {0} | Token: {1}", user, token);
+
 			var ws = new WikiSession(user, token);
 			var wc = new WikiClient(ws);
 
 			var cd   = Environment.CurrentDirectory;
 			var dest = Path.Combine(cd, "wiki");
 
-			var lists=wc.GetAllLists(dest);
+			var lists = wc.GetAllLists(dest);
 
-			Console.WriteLine("Exported {0} lists to {1}", lists.Count,dest);
+			foreach (var list in lists) {
+				var wrl  = list.List;
+				var wrle = list.Entries;
+
+				Console.WriteLine("\t{0} (id {1}) (updated {2}): {3} entries", wrl.Name, wrl.Id, wrl.Updated,
+				                  wrle.Length);
+			}
+
+			Console.WriteLine("Exported {0} lists to {1}", lists.Count, dest);
 		}
 	}
 }
