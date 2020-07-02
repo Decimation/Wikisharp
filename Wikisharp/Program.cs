@@ -45,8 +45,13 @@ namespace Wikisharp
 			var raindropToken = args.Length >= 2 ? args[2] : null;
 			var useRaindrop   = raindropToken != null;
 
-			Console.WriteLine("User: {0} | Token: {1} | Raindrop token: {2}", user, token, raindropToken);
+			Console.WriteLine("User: {0} | Token: {1} | Raindrop import: {2}", user, token, useRaindrop);
 
+			if (useRaindrop) {
+				Console.WriteLine("Raindrop token: {0}", raindropToken);
+			}
+			
+			
 			var ws = new WikiSession(user, token);
 			var wc = new WikiClient(ws);
 
@@ -109,19 +114,6 @@ namespace Wikisharp
 			}
 
 			Console.WriteLine("Exported {0} lists to {1}", lists.Count, dest);
-		}
-
-
-		public static void RunExport(string s)
-		{
-			// 
-
-			var rc = new RaindropClient(s);
-			var c  = rc.GetCollections();
-
-			foreach (var col in c) {
-				Console.WriteLine(col.title);
-			}
 		}
 	}
 }
